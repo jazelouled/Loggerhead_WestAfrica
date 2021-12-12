@@ -1,109 +1,83 @@
 library(ncdf4)
 library(raster)
+library(lubridate)
+library(doParallel)
+library(dplyr)
+library(ggplot2)
+library(scales)
 
-setwd("C:/Users/Jouled Cheikh/Dropbox/PhD/Alessandra/phy/sss")
-aa_sss<-nc_open("C:/Users/Jouled Cheikh/Dropbox/PhD/Alessandra/phy/global-reanalysis-phy-001-030-monthly_1633100946575.nc") #open de .nc file.
-sss<-ncvar_get(aa_sss,varid="so") #sss
-time_sss<-ncvar_get(aa_sss,varid="time") #hours since 1950-01-01 00:00:00
-dates_sss <- as.POSIXct(3600*time_sss, origin = "1950-01-01", tz = "GMT") # we transform number of days (time) into actual dates
-seq_year <- seq(1, length(dates_sss), 1)    
+chl_WestAfrica_df <- data.frame(date = dmy(), mean_chl = numeric(), stringsAsFactors = F)
+chl_files <- list.files(full.names = F , recursive =T, pattern = "_chl.nc", include.dirs = FALSE)                            
+chl_rasters <- stack()
 
-listRastersSSS<-list()
- 
-chl_years <- dir(here::here("data/RemoteSensing/GLOBAL_REANALYSIS_BIO_001_029-TDS/global-reanalysis-bio-001-029-daily")) #include in the "files" object all the chl files
-chl_daily <- dir(here::here("data/RemoteSensing/GLOBAL_REANALYSIS_BIO_001_029-TDS/global-reanalysis-bio-001-029-daily/1999/08/")) #include in the "files" object all the chl files
-
-setwd(here::here("data/RemoteSensing/GLOBAL_REANALYSIS_BIO_001_029-TDS/global-reanalysis-bio-001-029-daily"))                
-
-for (i in 1:length(chl_years)) { chl_months <- chl_years[i]
-      chl_months[i] <- dir(here::here("data/RemoteSensing/GLOBAL_REANALYSIS_BIO_001_029-TDS/global-reanalysis-bio-001-029-daily")) #include in the "files" object all the chl files
-
-          for (j in 1:length(chl_months)){ chl_daily <- chl_months[j]
-          
-                  chl_daily
-
-                              
-                              
-                              
-                              
-                            }
-                             
+for(i in 1:length(chl_files)) {
+  aa_chl<-nc_open(chl_files[i])
+  chl<-ncvar_get(aa_chl,varid="chl") #chl
+  lat_chl<-ncvar_get(aa_chl,varid="latitude") #latitude
+  lon_chl<-ncvar_get(aa_chl,varid="longitude") #longitude: -180-180	
+  time_chl<-ncvar_get(aa_chl,varid="time") #hours since 1950-01-01 00:00:00	
+  dates_chl <- as.POSIXct(3600*time_chl, origin = "1950-01-01", tz = "GMT") # we transform number of days (time) into actual dates
+  chl_mean <- mean(chl, na.rm=T)
+  chl_mean_r <- raster(chl) # transform the matrix into a raster
+  chl_mean_r <- t(flip(chl_mean_r, direction="x")) #to rotate the raster
+  bb<-extent(min(lon_chl),max(lon_chl),min(lat_chl),max(lat_chl)) #  generate an object with the bounding box: xmin, xmax, ymin, ymax
+  chl1<-setExtent(chl_mean_r,bb,keepres=FALSE, snap=FALSE) # apply the bounding box to the raster
+  chl_WestAfrica_df[i,1] = as.POSIXct(dates_chl)
+  chl_WestAfrica_df[i,2] = mean(chl_mean)
+  nc_close(aa_chl)
+} 
   
-  
-  
-}
+chl_rasters <- stack(chl_rasters, chl1)
 
 
 
 
-  for j
-      for k 
+cores <- 3   #detectCores()
+cl <- makeCluster(cores)
+registerDoParallel(cl)
 
-dir(here::here("data/RemoteSensing/GLOBAL_REANALYSIS_BIO_001_029-TDS/global-reanalysis-bio-001-029-daily"[j])) #include in the "files" object all the chl files
-
-chl_files <- dir(here::here("data/RemoteSensing/bio"), pattern="chl") #include in the "files" object all the chl files
-
-for (j in 1:length(chl_files)){
-  aa_sss<-nc_open(chl_files[j]) #open netCDF file.
-  sss<-ncvar_get(aa_sss,varid="chl") #sss
-  lat_sss<-ncvar_get(aa_sss,varid="latitude") #latitude
-  lon_sss<-ncvar_get(aa_sss,varid="longitude") #longitude: -180-180 
-  time_sss<-ncvar_get(aa_sss,varid="time") #hours since 1950-01-01 00:00:00
-  sss <- raster(sss[,,i]) # transform the matrix into a raster
-  sss1 <- t(flip(sss, direction="x")) #to rotate the raster
-  bb<-extent(min(lon_sss),max(lon_sss),min(lat_sss),max(lat_sss)) #  generate an object with the bounding box: xmin, xmax, ymin, ymax
-  projection(sss1)<-"+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
-  sss2<-setExtent(sss1,bb,keepres=FALSE, snap=FALSE) # apply the bounding box to the raster
-  bb2<-extent(-20, -10, 14, 23)
-  sss2<-crop(sss2, bb2)
-  sss2raster <- paste0('sss_', i, '.tif')
+y <- foreach(i=1:length(chl_files), .packages=c("lubridate", "ncdf4", "raster"), .inorder=TRUE) %dopar% {
+  print(i)
+  aa_chl<-nc_open(chl_files[i])
+  chl<-ncvar_get(aa_chl,varid="chl") #chl
+  lat_chl<-ncvar_get(aa_chl,varid="latitude") #latitude
+  lon_chl<-ncvar_get(aa_chl,varid="longitude") #longitude: -180-180	
+  time_chl<-ncvar_get(aa_chl,varid="time") #hours since 1950-01-01 00:00:00	
+  dates_chl <- as.POSIXct(3600*time_chl, origin = "1950-01-01", tz = "GMT") # we transform number of days (time) into actual dates
+  chl_mean <- mean(chl, na.rm=T)
+  chl_mean_r <- raster(chl) # transform the matrix into a raster
+  chl_mean_r <- t(flip(chl_mean_r, direction="x")) #to rotate the raster
+  bb<-extent(min(lon_chl),max(lon_chl),min(lat_chl),max(lat_chl)) #  generate an object with the bounding box: xmin, xmax, ymin, ymax
+  chl1<-setExtent(chl_mean_r,bb,keepres=FALSE, snap=FALSE) # apply the bounding box to the raster
+  chl_WestAfrica_df[i,1] = as.POSIXct(dates_chl)
+  chl_WestAfrica_df[i,2] = mean(chl_mean)
+  nc_close(aa_chl)
   
 }
 
+chl_WestAfrica_df$monthYear <- format_ISO8601(chl_WestAfrica_df$date, precision = "ym")
+
+chl_WestAfrica_df_month  <- chl_WestAfrica_df %>% 
+  dplyr::group_by(monthYear) %>%
+  dplyr::summarise(monthly_chl_mean = mean(mean_chl), sd=sd(mean_chl))
+date_format(chl_WestAfrica_df_month$monthYear,"%m-%Y")
+
+
+
+class(chl_WestAfrica_df$monthYear)
+ggplot(chl_WestAfrica_df_month, aes(x=monthYear, y= monthly_chl_mean)) +
+   geom_point() + geom_path()+scale_x_date(labels = date_format("%m-%Y"))
+  ylab("MLD (m)")
 
 
 
 
-for (i in 1:nrow(chl_years)){
-  #### SST preferred ranges (AquaMaps)
-  year_sst <- seq(1999,2019, 1)
-  sst_sp <- list() 
-}
-  
-  for (j in 1:length(year_sst)){ 
-    month_chl <- sst_med[[j]]
-    m <- c(0, species$min_sst[i], 0, species$min_sst[i] , species$max_sst[i], 1, species$max_sst[i], 50,  0) 
-    rcl <- matrix(m, ncol=3, byrow=TRUE) #reclass matrix
-    sst_mean_reclass<-reclassify(sst1, rcl, na.rm=TRUE)
-    sst_sp[j] <- sst_mean_reclass
-    print(j)
-  }
-  
-  sst_sp <- stack(sst_sp)
-  sst_sp_sum <- sum(sst_sp)
+plot(chl_WestAfrica_df_month$monthly_chl_mean, chl_WestAfrica_df_month$monthYear)
 
 
+my(chl_WestAfrica_df$date)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+??format_ISO8601()
 
 
 
