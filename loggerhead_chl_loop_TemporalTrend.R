@@ -188,6 +188,8 @@ npp_WestAfrica_df_ <- npp_WestAfrica_df %>%
   group_by(month=floor_date(date, "month")) %>%
   dplyr::summarise(monthly_npp_mean = mean(mean_npp), sd=sd(mean_npp))
 
+npp_WestAfrica_df_$month
+
 # Save daily mean table
 # write.csv(npp_WestAfrica_df, here::here("output/mean_daily_npp_MCP90.csv"))
 # Save monthly mean table
@@ -225,5 +227,5 @@ npp_monthly <- ggplot(npp_WestAfrica_df_, aes(x=month, y= monthly_npp_mean)) +
 
 chl_npp_plot <- chl_monthly/npp_monthly
 
-# ggsave(here::here("output/chl_npp_combinedPlot.pdf"), width = 20, height = 10)
+ggsave(here::here("output/chl_npp_combinedPlot.pdf"), width = 20, height = 10)
 
