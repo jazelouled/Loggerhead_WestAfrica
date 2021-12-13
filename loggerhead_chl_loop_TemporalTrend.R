@@ -6,7 +6,7 @@ library(dplyr)
 library(ggplot2)
 library(scales)
 
-chl_WestAfrica_df <- data.frame(date = dmy(), mean_chl = numeric(), stringsAsFactors = F)
+chl_WestAfrica_df <- data.frame(date = Date(), mean_chl = numeric(), stringsAsFactors = F)
 chl_files <- list.files(full.names = F , recursive =T, pattern = "_chl.nc", include.dirs = FALSE)                            
 chl_rasters <- stack()
 
@@ -27,6 +27,39 @@ for(i in 1:length(chl_files)) {
   nc_close(aa_chl)
 } 
   
+chl_WestAfrica_df <- chl_WestAfrica_df %>% 
+                      group_by(month=floor_date(date, "month")) %>%
+                      dplyr::summarise(monthly_chl_mean = mean(mean_chl), sd=sd(mean_chl))
+
+
+ggplot(chl_WestAfrica_df, aes(x=month, y= monthly_chl_mean)) +
+  geom_point() + geom_path()+scale_x_date(labels = date_format("%m-%Y"))
+
+
+
+
+
+ylab("MLD (m)")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 chl_rasters <- stack(chl_rasters, chl1)
 
 
@@ -55,11 +88,80 @@ y <- foreach(i=1:length(chl_files), .packages=c("lubridate", "ncdf4", "raster"),
   
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+as.pos
+chl_WestAfrica_df$monthYear <-substr(chl_WestAfrica_df$date, 1,7)
+
+AA<-chl_WestAfrica_df %>% 
+  group_by(month = lubridate::floor_date(date, "month"))
+
+??floor_date
+class(AA$month)
+
+
+<-my(chl_WestAfrica_df$date, )
+chl_WestAfrica_df$monthYear<- as.Date(chl_WestAfrica_df$monthYear, "%YYYY-%mm")
+
+AA<-chl_WestAfrica_df %>%
+  mutate(monthYear = format(seq(
+    as.Date(date),
+    by = "month",
+    length.out = length(chl_WestAfrica_df$date)
+  ), "%Y-%m"))
+
+as.POSIXct(chl_WestAfrica_df$monthYear, format="%Y-%m")
+
+?as.POSIXct
+
+ymd(chl_WestAfrica_df$date, truncated = 2)
+ym(chl_WestAfrica_df$monthYear)
+??as.Date
+as.Date(chl_WestAfrica_df$date, format = )
+class(chl_WestAfrica_df$monthYear)
 chl_WestAfrica_df$monthYear <- format_ISO8601(chl_WestAfrica_df$date, precision = "ym")
+??format_ISO8601
+
+
+as.POSIXct(chl_WestAfrica_df$monthYear, origin = "1950-01", tz = "GMT")
+date(chl_WestAfrica_df$monthYear)
 
 chl_WestAfrica_df_month  <- chl_WestAfrica_df %>% 
-  dplyr::group_by(monthYear) %>%
+  group_by(month = lubridate::floor_date(date, "month")) %>%
   dplyr::summarise(monthly_chl_mean = mean(mean_chl), sd=sd(mean_chl))
+  
+
 date_format(chl_WestAfrica_df_month$monthYear,"%m-%Y")
 
 
