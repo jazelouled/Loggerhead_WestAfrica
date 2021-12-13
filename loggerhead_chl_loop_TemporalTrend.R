@@ -189,9 +189,9 @@ npp_WestAfrica_df_ <- npp_WestAfrica_df %>%
   dplyr::summarise(monthly_npp_mean = mean(mean_npp), sd=sd(mean_npp))
 
 # Save daily mean table
-write.csv(npp_WestAfrica_df, here::here("output/mean_daily_npp_MCP90.csv"))
+# write.csv(npp_WestAfrica_df, here::here("output/mean_daily_npp_MCP90.csv"))
 # Save monthly mean table
-write.csv(npp_WestAfrica_df_, here::here("output/mean_monthly_npp_MCP90.csv"))
+# write.csv(npp_WestAfrica_df_, here::here("output/mean_monthly_npp_MCP90.csv"))
 
 
 
