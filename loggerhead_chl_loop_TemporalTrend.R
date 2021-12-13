@@ -63,22 +63,26 @@ for(i in 1:length(chl_files)) {
   crs(chl1)<-crs("+proj=longlat +datum=WGS84 +no_defs")
   chl2<-mask(chl1, MCP90)
   crs(chl2)<-"+proj=longlat +datum=WGS84 +no_defs"
-  chl_mean <- mean(chl2@data@values, na.rm=T)
+  chl_mean <- mean(chl2@data@values, na.rm=T) # average raster values
   chl_WestAfrica_df[i,1] = as.POSIXct(dates_chl)
   chl_WestAfrica_df[i,2] = chl_mean
   nc_close(aa_chl) # needed to avoid the error "too many files open"
 } 
+
  
 # Work on the populated data frame. We group by month and average monthly data 
+# floor_date explanation: https://ro-che.info/articles/2017-02-22-group_by_month_r
+# This function rounds down each date to the month boundary, so that dates in the same month
+# are rounded down to the same date. Then we can group all dates of a given month by month
 chl_WestAfrica_df_ <- chl_WestAfrica_df %>% 
                       group_by(month=floor_date(date, "month")) %>%
                       dplyr::summarise(monthly_chl_mean = mean(mean_chl), sd=sd(mean_chl))
 
 
 # Save daily mean table
-write.csv(chl_WestAfrica_df, here::here("output/mean_daily_chlorophyll_MCP90.csv"))
+# write.csv(chl_WestAfrica_df, here::here("output/mean_daily_chlorophyll_MCP90.csv"))
 # Save monthly mean table
-write.csv(chl_WestAfrica_df_, here::here("output/mean_monthly_chlorophyll_MCP90.csv"))
+# write.csv(chl_WestAfrica_df_, here::here("output/mean_monthly_chlorophyll_MCP90.csv"))
 
 
 
@@ -170,13 +174,16 @@ for(i in 1:length(npp_files)) {
   crs(npp1)<-crs("+proj=longlat +datum=WGS84 +no_defs")
   npp2<-mask(npp1, MCP90)
   crs(npp2)<-"+proj=longlat +datum=WGS84 +no_defs"
-  npp_mean <- mean(npp2@data@values, na.rm=T)
+  npp_mean <- mean(npp2@data@values, na.rm=T) # average raster values
   npp_WestAfrica_df[i,1] = as.POSIXct(dates_npp)
   npp_WestAfrica_df[i,2] = npp_mean
   nc_close(aa_npp) # needed to avoid the error "too many files open"
 } 
 
 # Work on the populated data frame. We group by month and average monthly data 
+# floor_date explanation: https://ro-che.info/articles/2017-02-22-group_by_month_r
+# This function rounds down each date to the month boundary, so that dates in the same month
+# are rounded down to the same date. Then we can group all dates of a given month by month
 npp_WestAfrica_df_ <- npp_WestAfrica_df %>% 
   group_by(month=floor_date(date, "month")) %>%
   dplyr::summarise(monthly_npp_mean = mean(mean_npp), sd=sd(mean_npp))
@@ -216,7 +223,7 @@ npp_monthly <- ggplot(npp_WestAfrica_df_, aes(x=month, y= monthly_npp_mean)) +
 
 
 
-chl_monthly/npp_monthly
+chl_npp_plot <- chl_monthly/npp_monthly
 
-
+# ggsave(here::here("output/chl_npp_combinedPlot.pdf"), width = 20, height = 10)
 
